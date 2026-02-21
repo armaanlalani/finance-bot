@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Add Position - Finance Bot{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto fade-in">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold mb-6">Add Position</h2>
+
+        <form method="POST" class="space-y-5">
+            <div>
+                <label for="ticker" class="block text-sm font-medium text-gray-700 mb-1">Ticker Symbol</label>
+                <input type="text" name="ticker" id="ticker" required placeholder="e.g. AAPL, VOO, QQQ"
+                    class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none uppercase">
+            </div>
+
+            <div>
+                <label for="shares" class="block text-sm font-medium text-gray-700 mb-1">Number of Shares</label>
+                <input type="number" name="shares" id="shares" required step="any" min="0.0001" placeholder="e.g. 10"
+                    class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
+            </div>
+
+            <div>
+                <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Purchase Price Per Share ($)</label>
+                <input type="number" name="price" id="price" required step="any" min="0.01" placeholder="e.g. 185.50"
+                    class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
+            </div>
+
+            <!-- Live price lookup -->
+            <div id="price-hint" class="hidden bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800"></div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="submit"
+                    class="flex-1 bg-brand-600 text-white px-4 py-2.5 rounded-lg font-medium text-sm hover:bg-brand-700 transition-colors">
+                    Add to Portfolio
+                </button>
+                <a href="/"
+                    class="flex-1 text-center bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-200 transition-colors">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const tickerInput = document.getElementById('ticker');
+    const priceHint = document.getElementById('price-hint');
+    let debounceTimer;
+
+    tickerInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const ticker = tickerInput.value.trim().toUpperCase();
+        if (ticker.length < 1) { priceHint.classList.add('hidden'); return; }
+
+        debounceTimer = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/price/${ticker}`);
+                const data = await res.json();
+                if (data.success) {
+                    const d = data.data;
+                    const color = d.change >= 0 ? 'text-green-700' : 'text-red-700';
+                    priceHint.innerHTML = `<strong>${d.name}</strong> — Current: $${d.price.toFixed(2)} <span class="${color}">(${d.change_pct >= 0 ? '+' : ''}${d.change_pct.toFixed(2)}%)</span>`;
+                    priceHint.classList.remove('hidden');
+                } else {
+                    priceHint.classList.add('hidden');
+                }
+            } catch { priceHint.classList.add('hidden'); }
+        }, 600);
+    });
+</script>
+{% endblock %}

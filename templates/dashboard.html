@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Finance Bot{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Portfolio summary cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <p class="text-sm text-gray-500 mb-1">Total Value</p>
+            <p class="text-2xl font-bold">{{ summary.total_value | currency }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <p class="text-sm text-gray-500 mb-1">Total Cost</p>
+            <p class="text-2xl font-bold">{{ summary.total_cost | currency }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <p class="text-sm text-gray-500 mb-1">Total Gain/Loss</p>
+            <p class="text-2xl font-bold {% if summary.total_gain >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                {{ summary.total_gain | currency }}
+            </p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <p class="text-sm text-gray-500 mb-1">Return</p>
+            <p class="text-2xl font-bold {% if summary.total_gain_pct >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                {{ summary.total_gain_pct | pct }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Holdings table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Holdings</h2>
+            <div class="flex gap-2">
+                <a href="/portfolio/add" class="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors">
+                    + Add Position
+                </a>
+                <a href="/portfolio/sell" class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
+                    Sell
+                </a>
+            </div>
+        </div>
+
+        {% if summary.holdings %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50 text-left text-gray-500 uppercase tracking-wider text-xs">
+                        <th class="px-6 py-3">Ticker</th>
+                        <th class="px-6 py-3 text-right">Shares</th>
+                        <th class="px-6 py-3 text-right">Avg Cost</th>
+                        <th class="px-6 py-3 text-right">Current Price</th>
+                        <th class="px-6 py-3 text-right">Market Value</th>
+                        <th class="px-6 py-3 text-right">Gain/Loss</th>
+                        <th class="px-6 py-3 text-right">Return</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for h in summary.holdings %}
+                    <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="window.location='/stock/{{ h.ticker }}'">
+                        <td class="px-6 py-4 font-semibold text-brand-700">{{ h.ticker }}</td>
+                        <td class="px-6 py-4 text-right">{{ h.shares }}</td>
+                        <td class="px-6 py-4 text-right">{{ h.avg_price | currency }}</td>
+                        <td class="px-6 py-4 text-right">{{ h.current_price | currency }}</td>
+                        <td class="px-6 py-4 text-right font-medium">{{ h.market_value | currency }}</td>
+                        <td class="px-6 py-4 text-right font-medium {% if h.gain >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            {{ h.gain | currency }}
+                        </td>
+                        <td class="px-6 py-4 text-right font-medium {% if h.gain_pct >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            {{ h.gain_pct | pct }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-16 text-center text-gray-400">
+            <p class="text-4xl mb-3">📋</p>
+            <p class="text-lg font-medium mb-1">No holdings yet</p>
+            <p class="mb-4">Add your first position to get started.</p>
+            <a href="/portfolio/add" class="inline-flex items-center px-5 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700">
+                + Add Position
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

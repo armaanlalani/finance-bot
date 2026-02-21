@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Transaction History - Finance Bot{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Transaction History</h2>
+            {% if filter_ticker %}
+            <a href="/portfolio/history" class="text-sm text-brand-600 hover:underline">Show all</a>
+            {% endif %}
+        </div>
+
+        {% if transactions %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50 text-left text-gray-500 uppercase tracking-wider text-xs">
+                        <th class="px-6 py-3">Date</th>
+                        <th class="px-6 py-3">Type</th>
+                        <th class="px-6 py-3">Ticker</th>
+                        <th class="px-6 py-3 text-right">Shares</th>
+                        <th class="px-6 py-3 text-right">Price</th>
+                        <th class="px-6 py-3 text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for t in transactions %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 text-gray-500">{{ t.date[:10] }}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if t.type == 'BUY' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ t.type }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-medium">{{ t.ticker }}</td>
+                        <td class="px-6 py-4 text-right">{{ t.shares }}</td>
+                        <td class="px-6 py-4 text-right">{{ t.price | currency }}</td>
+                        <td class="px-6 py-4 text-right font-medium">{{ t.total | currency }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-16 text-center text-gray-400">
+            <p class="text-4xl mb-3">📜</p>
+            <p>No transactions found.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}AI Research - Finance Bot{% endblock %}
+
+{% block content %}
+<div class="fade-in space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">AI Research & Insights</h1>
+        <span class="text-xs text-gray-400">Powered by OpenAI</span>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button onclick="loadBriefing()" id="btn-briefing"
+            class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-left hover:border-brand-300 hover:shadow-md transition-all group">
+            <div class="text-2xl mb-2">🌅</div>
+            <h3 class="font-semibold group-hover:text-brand-700">Daily Briefing</h3>
+            <p class="text-sm text-gray-500 mt-1">Get today's market overview tailored to your portfolio</p>
+        </button>
+
+        <button onclick="loadSuggestions()" id="btn-suggestions"
+            class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-left hover:border-brand-300 hover:shadow-md transition-all group">
+            <div class="text-2xl mb-2">💡</div>
+            <h3 class="font-semibold group-hover:text-brand-700">Portfolio Suggestions</h3>
+            <p class="text-sm text-gray-500 mt-1">AI recommendations for buys, sells, and rebalancing</p>
+        </button>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div class="text-2xl mb-2">🔍</div>
+            <h3 class="font-semibold mb-2">Research Tickers</h3>
+            <div class="flex gap-2">
+                <input type="text" id="research-tickers" placeholder="AAPL, VOO, QQQ"
+                    class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none uppercase">
+                <button onclick="loadResearch()"
+                    class="px-4 py-2 bg-brand-600 text-white text-sm rounded-lg hover:bg-brand-700 transition-colors font-medium">
+                    Go
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loading" class="hidden text-center py-12">
+        <div class="loader mx-auto mb-3"></div>
+        <p class="text-sm text-gray-500">Analyzing with AI — this may take a moment...</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="error" class="hidden bg-red-50 border border-red-200 rounded-xl p-5 text-red-800">
+        <p class="font-medium mb-1">Error</p>
+        <p id="error-message" class="text-sm"></p>
+    </div>
+
+    <!-- Result area -->
+    <div id="result" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div id="result-content" class="prose prose-sm max-w-none
+            prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900
+            prose-ul:text-gray-700 prose-ol:text-gray-700 prose-li:text-gray-700">
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const errorMessage = document.getElementById('error-message');
+    const result = document.getElementById('result');
+    const resultContent = document.getElementById('result-content');
+
+    function showLoading() {
+        loading.classList.remove('hidden');
+        error.classList.add('hidden');
+        result.classList.add('hidden');
+    }
+
+    function showError(msg) {
+        loading.classList.add('hidden');
+        error.classList.remove('hidden');
+        errorMessage.textContent = msg;
+    }
+
+    function showResult(html) {
+        loading.classList.add('hidden');
+        result.classList.remove('hidden');
+        resultContent.innerHTML = html;
+    }
+
+    async function loadBriefing() {
+        showLoading();
+        try {
+            const res = await fetch('/api/research/briefing', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) showResult(data.content);
+            else showError(data.error);
+        } catch (e) { showError('Failed to connect. Please try again.'); }
+    }
+
+    async function loadSuggestions() {
+        showLoading();
+        try {
+            const res = await fetch('/api/research/suggestions', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) showResult(data.content);
+            else showError(data.error);
+        } catch (e) { showError('Failed to connect. Please try again.'); }
+    }
+
+    async function loadResearch() {
+        const input = document.getElementById('research-tickers').value;
+        const tickers = input.split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+        if (!tickers.length) return;
+
+        showLoading();
+        try {
+            const res = await fetch('/api/research/market', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tickers }),
+            });
+            const data = await res.json();
+            if (data.success) showResult(data.content);
+            else showError(data.error);
+        } catch (e) { showError('Failed to connect. Please try again.'); }
+    }
+
+    // Allow Enter key in ticker input
+    document.getElementById('research-tickers').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loadResearch();
+    });
+</script>
+{% endblock %}

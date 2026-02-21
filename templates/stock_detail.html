@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}{{ stock.ticker }} - Finance Bot{% endblock %}
+
+{% block content %}
+<div class="fade-in space-y-6">
+    <!-- Header -->
+    <div class="flex items-start justify-between">
+        <div>
+            <h1 class="text-3xl font-bold">{{ stock.name }}</h1>
+            <p class="text-gray-500">{{ stock.ticker }} · {{ stock.sector }} · {{ stock.industry }}</p>
+        </div>
+        <div class="text-right">
+            <p class="text-3xl font-bold">{{ stock.price | currency }}</p>
+            <p class="text-lg font-medium {% if stock.change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                {{ stock.change | currency }} ({{ stock.change_pct | pct }})
+            </p>
+        </div>
+    </div>
+
+    <!-- Price chart -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-sm font-medium text-gray-500 mb-4">Last 30 Days</h3>
+        <canvas id="priceChart" height="80"></canvas>
+    </div>
+
+    <!-- Metrics grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Market Cap</p>
+            <p class="text-lg font-semibold mt-1">{{ stock.market_cap | large_number }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">P/E Ratio</p>
+            <p class="text-lg font-semibold mt-1">{{ '%.2f' % stock.pe_ratio if stock.pe_ratio else 'N/A' }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">52W High</p>
+            <p class="text-lg font-semibold mt-1">{{ stock['52w_high'] | currency if stock['52w_high'] else 'N/A' }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">52W Low</p>
+            <p class="text-lg font-semibold mt-1">{{ stock['52w_low'] | currency if stock['52w_low'] else 'N/A' }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Dividend Yield</p>
+            <p class="text-lg font-semibold mt-1">{{ '%.2f%%' % (stock.dividend_yield * 100) if stock.dividend_yield else 'N/A' }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Beta</p>
+            <p class="text-lg font-semibold mt-1">{{ '%.2f' % stock.beta if stock.beta else 'N/A' }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Avg Volume</p>
+            <p class="text-lg font-semibold mt-1">{{ stock.avg_volume | large_number if stock.avg_volume else 'N/A' }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Sharpe Ratio</p>
+            <p class="text-lg font-semibold mt-1">{{ sharpe.sharpe_ratio }}</p>
+        </div>
+    </div>
+
+    <!-- Analysis cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h3 class="font-semibold mb-3">Returns (1Y)</h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between"><span class="text-gray-500">Total Return</span>
+                    <span class="font-medium {% if returns.total_return_pct >= 0 %}text-green-600{% else %}text-red-600{% endif %}">{{ returns.total_return_pct | pct }}</span>
+                </div>
+                <div class="flex justify-between"><span class="text-gray-500">Best Day</span>
+                    <span class="font-medium text-green-600">{{ returns.best_day_pct | pct }}</span>
+                </div>
+                <div class="flex justify-between"><span class="text-gray-500">Worst Day</span>
+                    <span class="font-medium text-red-600">{{ returns.worst_day_pct | pct }}</span>
+                </div>
+                <div class="flex justify-between"><span class="text-gray-500">Positive Days</span>
+                    <span class="font-medium">{{ returns.positive_days }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h3 class="font-semibold mb-3">Volatility (1Y)</h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between"><span class="text-gray-500">Daily Vol</span>
+                    <span class="font-medium">{{ volatility.daily_volatility_pct | pct }}</span>
+                </div>
+                <div class="flex justify-between"><span class="text-gray-500">Annual Vol</span>
+                    <span class="font-medium">{{ volatility.annual_volatility_pct | pct }}</span>
+                </div>
+                <div class="flex justify-between"><span class="text-gray-500">Max Drawdown</span>
+                    <span class="font-medium text-red-600">{{ volatility.max_drawdown_pct | pct }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h3 class="font-semibold mb-3">Risk/Return (1Y)</h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between"><span class="text-gray-500">Sharpe Ratio</span>
+                    <span class="font-medium">{{ sharpe.sharpe_ratio }}</span>
+                </div>
+                <div class="flex justify-between"><span class="text-gray-500">Annualized Return</span>
+                    <span class="font-medium">{{ sharpe.annualized_return_pct | pct }}</span>
+                </div>
+                <div class="flex justify-between"><span class="text-gray-500">Annual Vol</span>
+                    <span class="font-medium">{{ sharpe.annualized_volatility_pct | pct }}</span>
+                </div>
+                <div class="flex justify-between"><span class="text-gray-500">Risk-Free Rate</span>
+                    <span class="font-medium">{{ sharpe.risk_free_rate_pct | pct }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Description -->
+    {% if stock.description %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <h3 class="font-semibold mb-2">About {{ stock.name }}</h3>
+        <p class="text-sm text-gray-600 leading-relaxed">{{ stock.description[:600] }}{% if stock.description|length > 600 %}…{% endif %}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ctx = document.getElementById('priceChart').getContext('2d');
+    const prices = {{ stock.chart_prices | tojson }};
+    const labels = {{ stock.chart_labels | tojson }};
+    const isUp = prices[prices.length - 1] >= prices[0];
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: prices,
+                borderColor: isUp ? '#16a34a' : '#dc2626',
+                backgroundColor: isUp ? 'rgba(22,163,74,0.08)' : 'rgba(220,38,38,0.08)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 0,
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: true, grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 } } },
+                y: { display: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 11 }, callback: v => '$' + v.toFixed(0) } }
+            },
+            interaction: { intersect: false, mode: 'index' },
+        }
+    });
+</script>
+{% endblock %}
