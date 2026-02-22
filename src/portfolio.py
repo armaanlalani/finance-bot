@@ -412,6 +412,14 @@ def parse_wealthsimple_csv(file_content: str) -> list[dict]:
         # Name
         name = row.get("name", "").strip()
 
+        # Resolve CDR (CAD Hedged) tickers to their NEO exchange equivalents.
+        # On Wealthsimple, CDRs like "Nvidia CDR (CAD Hedged)" use bare symbols
+        # (NVDA, AMD, etc.) but actually trade on NEO at very different CAD prices.
+        name_lower = name.lower()
+        if ("cdr" in name_lower or "cad hedged" in name_lower or "cad-hedged" in name_lower):
+            if "." not in symbol:
+                symbol = f"{symbol}.NE"
+
         # Commission
         try:
             commission = abs(float(row.get("commission", "0").strip().replace(",", "").replace("$", "") or "0"))
