@@ -27,6 +27,33 @@
         </div>
     </div>
 
+    <!-- Per-account summary cards -->
+    {% if summary.accounts and summary.accounts | length > 1 %}
+    <div class="mb-8">
+        <h2 class="text-lg font-semibold mb-3 text-gray-700">By Account</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for acct_name, acct in summary.accounts.items() %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                        {% if acct_name == 'TFSA' %}bg-blue-100 text-blue-800
+                        {% elif acct_name == 'FHSA' %}bg-purple-100 text-purple-800
+                        {% elif acct_name == 'RRSP' %}bg-orange-100 text-orange-800
+                        {% elif acct_name == 'Non-registered' %}bg-gray-100 text-gray-800
+                        {% else %}bg-green-100 text-green-800{% endif %}">
+                        {{ acct_name }}
+                    </span>
+                </div>
+                <p class="text-xl font-bold">{{ acct.total_value | currency }}</p>
+                <p class="text-sm {% if acct.total_gain >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ acct.total_gain | currency }} ({{ acct.total_gain_pct | pct }})
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Holdings table -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
@@ -42,11 +69,30 @@
         </div>
 
         {% if summary.holdings %}
+        <!-- Account filter tabs -->
+        {% if summary.accounts and summary.accounts | length > 1 %}
+        <div class="px-6 pt-4 flex gap-2 flex-wrap" id="account-tabs">
+            <button onclick="filterAccount('all')"
+                class="account-tab active px-3 py-1.5 text-xs font-medium rounded-full border transition-colors bg-brand-600 text-white border-brand-600"
+                data-account="all">
+                All
+            </button>
+            {% for acct_name in summary.accounts.keys() %}
+            <button onclick="filterAccount('{{ acct_name }}')"
+                class="account-tab px-3 py-1.5 text-xs font-medium rounded-full border transition-colors bg-white text-gray-600 border-gray-300 hover:border-brand-400"
+                data-account="{{ acct_name }}">
+                {{ acct_name }}
+            </button>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-50 text-left text-gray-500 uppercase tracking-wider text-xs">
                         <th class="px-6 py-3">Ticker</th>
+                        <th class="px-6 py-3">Account</th>
                         <th class="px-6 py-3 text-right">Shares</th>
                         <th class="px-6 py-3 text-right">Avg Cost</th>
                         <th class="px-6 py-3 text-right">Current Price</th>
@@ -57,8 +103,18 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for h in summary.holdings %}
-                    <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="window.location='/stock/{{ h.ticker }}'">
+                    <tr class="hover:bg-gray-50 transition-colors cursor-pointer holding-row" data-account="{{ h.account_type }}" onclick="window.location='/stock/{{ h.ticker }}'">
                         <td class="px-6 py-4 font-semibold text-brand-700">{{ h.ticker }}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                {% if h.account_type == 'TFSA' %}bg-blue-100 text-blue-800
+                                {% elif h.account_type == 'FHSA' %}bg-purple-100 text-purple-800
+                                {% elif h.account_type == 'RRSP' %}bg-orange-100 text-orange-800
+                                {% elif h.account_type == 'Non-registered' %}bg-gray-100 text-gray-800
+                                {% else %}bg-green-100 text-green-800{% endif %}">
+                                {{ h.account_type }}
+                            </span>
+                        </td>
                         <td class="px-6 py-4 text-right">{{ h.shares }}</td>
                         <td class="px-6 py-4 text-right">{{ h.avg_price | currency }}</td>
                         <td class="px-6 py-4 text-right">{{ h.current_price | currency }}</td>
@@ -78,12 +134,44 @@
         <div class="px-6 py-16 text-center text-gray-400">
             <p class="text-4xl mb-3">📋</p>
             <p class="text-lg font-medium mb-1">No holdings yet</p>
-            <p class="mb-4">Add your first position to get started.</p>
-            <a href="/portfolio/add" class="inline-flex items-center px-5 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700">
-                + Add Position
-            </a>
+            <p class="mb-4">Add your first position or import from Wealthsimple to get started.</p>
+            <div class="flex justify-center gap-3">
+                <a href="/portfolio/add" class="inline-flex items-center px-5 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700">
+                    + Add Position
+                </a>
+                <a href="/portfolio/import" class="inline-flex items-center px-5 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200">
+                    Import CSV
+                </a>
+            </div>
         </div>
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterAccount(account) {
+    const rows = document.querySelectorAll('.holding-row');
+    const tabs = document.querySelectorAll('.account-tab');
+
+    tabs.forEach(tab => {
+        if (tab.dataset.account === account) {
+            tab.classList.add('bg-brand-600', 'text-white', 'border-brand-600');
+            tab.classList.remove('bg-white', 'text-gray-600', 'border-gray-300');
+        } else {
+            tab.classList.remove('bg-brand-600', 'text-white', 'border-brand-600');
+            tab.classList.add('bg-white', 'text-gray-600', 'border-gray-300');
+        }
+    });
+
+    rows.forEach(row => {
+        if (account === 'all' || row.dataset.account === account) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
 {% endblock %}

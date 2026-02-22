@@ -14,6 +14,16 @@
             </div>
 
             <div>
+                <label for="account_type" class="block text-sm font-medium text-gray-700 mb-1">Account Type</label>
+                <select name="account_type" id="account_type"
+                    class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none bg-white">
+                    {% for acct in account_types %}
+                    <option value="{{ acct }}">{{ acct }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
                 <label for="shares" class="block text-sm font-medium text-gray-700 mb-1">Shares to Sell</label>
                 <input type="number" name="shares" id="shares" required step="any" min="0.0001" placeholder="e.g. 5"
                     class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
